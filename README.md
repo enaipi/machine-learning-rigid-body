@@ -1,4 +1,4 @@
-# learn-rigid-body-energy
+# machine-learning-rigid-body
 A simple collection of python(3) scripts that:
 (i) simulate evolution of rigid body rotation
 (ii) Learn the energy of the rigid body from the simulated points
