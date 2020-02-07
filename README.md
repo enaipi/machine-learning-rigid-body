@@ -11,5 +11,6 @@ Learning using a distribution of initial conditions is done in script statistica
 
 
 [1] Michal Pavelka, Václav Klika and Miroslav Grmela, Ehrenfest regularization of Hamiltonian systems, Physica D: Nonlinear phenomena, 399, 193-210, 2019
+
 [2] Francisco Chinesta, Elias Cueto, Miroslav Grmela, Beatriz Moya, Michal Pavelka, Learning Physics from Data: a Thermodynamic Interpretation, arXiv:1909.01074, submitted to Physica D
 
