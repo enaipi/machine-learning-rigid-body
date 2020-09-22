@@ -1,13 +1,14 @@
 import numpy as np
 import math
+from RigidBody import RBESeReCN
 #import random
 
 N = 2*100000 #number of steps
 
 #initial condition
 mx = 1.0
-my = 1.0
-mz = 5.0
+my = 0.3
+mz = 0.3
 print "Initial |m| = ", math.sqrt(mx**2+my**2+mz**2)
 
 si = 0.0
@@ -55,10 +56,12 @@ print "Initial Phi = ", Phi(mx, my, mz)
 
 #time steps
 #dt= 0.01 * 1/max([mx/Ix,my/Iy,mz/Iz])
-dt= 0.01 
-dtau = dt 
+dt= 0.05
+dtau = 0.1*dt
 print "dt = ", dt
 print "dtau = ", dtau
+
+solver = RBESeReCN(Ix,Iy,Iz,mx,my,mz,dt,dtau)
 
 #preparing files
 mfile = open("m.xyz",'w')
@@ -76,39 +79,41 @@ try:
     #calculate evolution
     for i in range(N-1):
         #SeRe:
-        mx_new = mx + dt*my*mz*Jx + 0.5*dt*dtau*mx*(my*my * Jx*Jz + mz*mz * Jx*Jy)
-        my_new = my + dt*mz*mx*Jy + 0.5*dt*dtau*my*(mz*mz * Jy*Jx + mx*mx * Jy*Jz)
-        mz_new = mz + dt*mx*my*Jz + 0.5*dt*dtau*mz*(mx*mx * Jz*Jy + my*my * Jz*Jx)
+        #mx_new = mx + dt*my*mz*Jx + 0.5*dt*dtau*mx*(my*my * Jx*Jz + mz*mz * Jx*Jy)
+        #my_new = my + dt*mz*mx*Jy + 0.5*dt*dtau*my*(mz*mz * Jy*Jx + mx*mx * Jy*Jz)
+        #mz_new = mz + dt*mx*my*Jz + 0.5*dt*dtau*mz*(mx*mx * Jz*Jy + my*my * Jz*Jx)
 
         #Energetic SeRe:
-        #mx_new = mx + dt*my*mz*Jx + 0.5*dt*dtau*mx*(my*my * Jz/Iz - mz*mz*Jy/Iy)
-        #my_new = my + dt*mz*mx*Jy + 0.5*dt*dtau*my*(mz*mz * Jx/Ix - mx*mx*Jz/Iz)
-        #mz_new = mz + dt*mx*my*Jz + 0.5*dt*dtau*mz*(mx*mx * Jy/Iy - my*my*Jx/Ix)
+        mx_new = mx + dt*my*mz*Jx + 0.5*dt*dtau*mx*(my*my * Jz/Iz - mz*mz*Jy/Iy)
+        my_new = my + dt*mz*mx*Jy + 0.5*dt*dtau*my*(mz*mz * Jx/Ix - mx*mx*Jz/Iz)
+        mz_new = mz + dt*mx*my*Jz + 0.5*dt*dtau*mz*(mx*mx * Jy/Iy - my*my*Jx/Ix)
+        #Energetic SeRe with CN
+        #mx_new, my_new, mz_new = solver.m_new()
 
         #Entropic SeRe:
         #mx_new = mx + dt*my*mz*Jx + 0.5*dt*dtau*mx*(-my*my * Jz/Iy + mz*mz*Jy/Iz)
         #my_new = my + dt*mz*mx*Jy + 0.5*dt*dtau*my*(-mz*mz * Jx/Iz + mx*mx*Jz/Ix)
         #mz_new = mz + dt*mx*my*Jz + 0.5*dt*dtau*mz*(-mx*mx * Jy/Ix + my*my*Jx/Iy)
 
-        #si_new = si+ 0.5*(dtau-dt)*dt/Ein_s(si) * ((my*mz*Jx)**2/Ix + (mz*mx*Jy)**2/Iy + (mx*my*Jz)**2/Iz)
+        si_new = si+ 0.5*(dtau-dt)*dt/Ein_s(si) * ((my*mz*Jx)**2/Ix + (mz*mx*Jy)**2/Iy + (mx*my*Jz)**2/Iz)
 
         mx = mx_new
         my = my_new
         mz = mz_new
-        #si = si_new
+        si = si_new
 
         if i % store_each == 0:
             t = dt * i
             mx2 = mx*mx
             my2 = my*my
             mz2 = mz*mz
-            #store_m([t, mx,my,mz, mx2,my2,mz2, 0.5*mx2/Ix,0.5*my2/Iy,0.5*mz2/Iz,si,Ein(si), Phi(mx, my, mz)])
+            #store_m([t, mx,my,mz, math.sqrt(mx2+my2+mz2), 10*0.5*mx2/Ix+0.5*my2/Iy+0.5*mz2/Iz,si,Ein(si), Phi(mx, my, mz)])
             store_m([t, mx,my,mz])
         if i % (N/10) == 0:
             print (i+0.0)/N*100, "%"
             print "|m| = ", math.sqrt(mx**2+my**2+mz**2)
             print "E = ", 0.5*(mx**2/Ix + my**2/Iy + mz**2/Iz)
-        
+
 finally:
     mfile.close()
 

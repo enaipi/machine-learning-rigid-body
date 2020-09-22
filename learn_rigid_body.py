@@ -3,14 +3,15 @@ import numpy as np
 
 learner = LearnRBEnergy()
 
-Ix = 10.0
-Iy = 20.0
-Iz = 40.0
+I = 10.0
+Ix = 1*I
+Iy = 2*I
+Iz = 4*I
 learner.update_exact(Ix, Iy, Iz)
 
-learner.load_trajectory_from_file("m.xyz", readevery = 10, stopat = 10*3)
+learner.load_trajectory_from_file("m.xyz", readevery = 1, stopat = 3000)
 learner.print_trajectory(stopat=10)
-learner.fit()
+learner.fit(verbose=True)
 
 print "\n----Comparing matrices: "
 print "Original energy matrix: \n", np.array_str(np.array(learner.d2E_exact))
@@ -41,5 +42,3 @@ print "Using learned: "
 learner.predict(learner.trajectory[1][0]-learner.trajectory[0][0], learner.trajectory[0][1], learner.trajectory[0][2],learner.trajectory[0][3])
 print "Using exact: "
 learner.predict(learner.trajectory[1][0]-learner.trajectory[0][0], learner.trajectory[0][1], learner.trajectory[0][2],learner.trajectory[0][3], using_exact = True)
-
-

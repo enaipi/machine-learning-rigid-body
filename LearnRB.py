@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sympy import LeviCivita
+from scipy.optimize import curve_fit
 
 class LearnRBEnergy(object):
     def __init__(self):
@@ -9,12 +10,12 @@ class LearnRBEnergy(object):
         self.trajectory = []
 
     def load_trajectory_from_file(self, file_name, readevery=1, stopat=0, verbose = False):
-        #Assumed format: t, mx, my, mz \n 
+        #Assumed format: t, mx, my, mz \n
         traj_file = open(file_name,"r")
         lines = traj_file.readlines()
         print("Length of data: ", len(lines))
 
-        if stopat == 0: 
+        if stopat == 0:
             stopat = len(lines) #read the whole file
 
         self.trajectory = [[float(j) for j in lines[0].split(" ")]] #contains entry at t=0
@@ -27,9 +28,9 @@ class LearnRBEnergy(object):
             print("Number of points: ", len(self.trajectory))
 
     def load_trajectory(self, trajectory, readevery = 1, stopat = 0, verbose = False):
-        #Assumed format: t, mx, my, mz \n 
+        #Assumed format: t, mx, my, mz \n
 
-        if stopat == 0: 
+        if stopat == 0:
             stopat = len(trajectory) #read the whole trajectory
 
         self.trajectory = [trajectory[0]]
@@ -42,7 +43,7 @@ class LearnRBEnergy(object):
             print("Number of points: ", len(self.trajectory))
 
     def print_trajectory(self, stopat = 0):
-        if stopat == 0: 
+        if stopat == 0:
             stopat = len(self.trajectory)
 
         print("Prining the trajectory")
@@ -53,66 +54,63 @@ class LearnRBEnergy(object):
         x = []
         y = []
         for i in range(len(self.trajectory)-1):
-            y.append(self.trajectory[i+1][1]-self.trajectory[i][1])
-            y.append(self.trajectory[i+1][2]-self.trajectory[i][2])
-            y.append(self.trajectory[i+1][3]-self.trajectory[i][3])
+            y.append([self.trajectory[i+1][j]-self.trajectory[i][j] for j in range(1,4)])
 
             dt = self.trajectory[i+1][0] - self.trajectory[i][0]
 
-            m1 = self.trajectory[i][1]
-            m2 = self.trajectory[i][2]
-            m3 = self.trajectory[i][3]
+            x.append(self.trajectory[i][1:])
 
-            x_vector1 = dt*np.array([0, -m3*m1, m2*m1, -m3*m2, -m3*m3+m2*m2, m2*m3])
-            x_vector2 = dt*np.array([m3*m1, m3*m2, m3*m3-m1*m1, 0, -m1*m2, -m1*m3])
-            x_vector3 = dt*np.array([-m2*m1, -m2*m2+m1*m1, -m2*m3, m1*m2, m1*m3, 0])
+        print "dt: ", dt
 
-            x.append(x_vector1)
-            x.append(x_vector2)
-            x.append(x_vector3)
-     
-        if verbose:
-            print("x.shape: ", np.array(x).shape)
-            print("y.shape: ", np.array(y).shape)
+        #Nonlinear fit. Using Energetic Ehrenfest regularization
+        def to_fit(m, d2E11, d2E12, d2E13, d2E22, d2E23, d2E33, dtau):
+            d2E = [[d2E11, d2E12, d2E13],[d2E12, d2E22, d2E23], [d2E13, d2E23, d2E33]]
 
-        model = LinearRegression(fit_intercept=False)
-        #Fitting by linear regression...
-        model.fit(x,y)
-        [E11, E12, E13, E22, E23, E33] = model.coef_
+            #Hamiltionian part
+            dot = np.dot(m, np.transpose(d2E))
+            ham = np.cross(m, dot, axisa=1, axisb=1)
+
+            #regularized part
+            dotR = np.dot(ham, np.transpose(d2E))
+            reg  = np.cross(dotR, m, axisa=1, axisb=1)
+
+
+            res = dt*ham - dt*dtau/2*reg
+            return res.ravel()
+
+        d2E, _ = curve_fit(to_fit, x, np.array(y).ravel(), [1,1,1,1,1,1,1])
+        print d2E
+        [E11, E12, E13, E22, E23, E33, dtau] = d2E
+        print "learned dtau is: ", dtau
+        print "learned dt is: ", dt
         self.d2E = [[E11, E12, E13], [E12, E22, E23], [E13, E23, E33]]
-       
-        score = model.score(x,y)#1-(residual)/(total sum of squares). Close to 1.0 is good, negative bad.
-        if verbose:
-            print("Score: ", score) 
-        if score < 0:
-            print("Warning: linear regression did not coverge.")
 
 
     def tr(self, verbose = False):
         tr = np.trace(self.d2E)
         if verbose:
             print("tr d2E = ", tr)
-        return tr 
+        return tr
 
     def det(self, verbose = False):
         det = np.linalg.det(self.d2E)
         if verbose:
             print("det d2E = ", det)
-        return det 
+        return det
 
- 
-    def print_d2E(self): 
+
+    def print_d2E(self):
         print("d2E = \n", np.array_str(np.array(self.d2E)))
 
     def spectrum(self, verbose = False):
         spectrum, eigvec = np.linalg.eig(self.d2E)
-        if verbose: 
+        if verbose:
             print("Eigenvalues(d2E) = ", spectrum)
         return spectrum
 
     def spectrum_exact(self, verbose = False):
         spectrum, eigvec = np.linalg.eig(self.d2E_exact)
-        if verbose: 
+        if verbose:
             print("Eigenvalues(d2E) = ", spectrum)
         return spectrum
 
@@ -126,7 +124,7 @@ class LearnRBEnergy(object):
                         m1_new -= dt * m[k-1] * m[l-1] * LeviCivita(1,j,k) * self.d2E[j-1][l-1]
                     else:
                         m1_new -= dt * m[k-1] * m[l-1] * LeviCivita(1,j,k) * self.d2E_exact[j-1][l-1]
-        
+
         m2_new = m2
         for j in range(1,4):
             for k in range(1,4):
@@ -149,12 +147,12 @@ class LearnRBEnergy(object):
         print(result)
         return result
 
-    def normalize(self): 
+    def normalize(self):
         #SO3 dynamics is not canonical and has Casimirs. Therefore, we can only learn energy up to the Casimirs.
-        #Casimirs are multiples of |m|^2. 
+        #Casimirs are multiples of |m|^2.
         #This method normalized the learned d2E by adding a the unit matrix multiplied by a constant\
         #so that it matches the exact energy.
-       
+
         tr = np.trace(self.d2E)
         tr_exact = np.trace(self.d2E_exact)
 
