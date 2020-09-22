@@ -4,7 +4,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-class MultiComparison(object):
+class MultiComparison:
     def __init__(self, N, Ix, Iy, Iz, dt):
         self.N = N#number of steps
         print("N = ", N)

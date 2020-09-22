@@ -3,7 +3,7 @@ from sklearn.linear_model import LinearRegression
 from sympy import LeviCivita
 from scipy.optimize import curve_fit
 
-class LearnRBEnergy(object):
+class LearnRBEnergy:
     def __init__(self):
         self.d2E = [[0,0,0],[0,0,0],[0,0,0]]
         self.d2E_exact = [[0,0,0],[0,0,0],[0,0,0]]
@@ -60,7 +60,7 @@ class LearnRBEnergy(object):
 
             x.append(self.trajectory[i][1:])
 
-        print "dt: ", dt
+        print("dt: ", dt)
 
         #Nonlinear fit. Using Energetic Ehrenfest regularization
         def to_fit(m, d2E11, d2E12, d2E13, d2E22, d2E23, d2E33, dtau):
@@ -79,10 +79,10 @@ class LearnRBEnergy(object):
             return res.ravel()
 
         d2E, _ = curve_fit(to_fit, x, np.array(y).ravel(), [1,1,1,1,1,1,1])
-        print d2E
+        print(d2E)
         [E11, E12, E13, E22, E23, E33, dtau] = d2E
-        print "learned dtau is: ", dtau
-        print "learned dt is: ", dt
+        print("learned dtau is: ", dtau)
+        print("learned dt is: ", dt)
         self.d2E = [[E11, E12, E13], [E12, E22, E23], [E13, E23, E33]]
 
 
